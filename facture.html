@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#070d1c">
+<title>Genius — Vérification Facture</title>
+<style>
+  :root{
+    --bg:#070d1c;--surf:#0d1b35;--card:#111f3e;--bd:#1e3560;
+    --tx:#cce0ff;--mu:#5a84b8;--ac:#3b82f6;--gr:#10b981;--am:#f59e0b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+
+  .card{
+    background:var(--card);border:1px solid var(--bd);border-radius:20px;
+    padding:28px 24px;width:100%;max-width:420px;
+  }
+
+  /* Header */
+  .header{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--bd)}
+  .logo{width:46px;height:46px;background:linear-gradient(135deg,#ec4899,#f43f5e);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 16px rgba(236,72,153,0.4)}
+  .brand-name{font-size:20px;font-weight:800;color:#fff}
+  .brand-sub{font-size:12px;color:var(--mu);margin-top:1px}
+
+  /* Valid badge */
+  .valid-badge{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);
+    border-radius:12px;padding:12px 16px;margin-bottom:20px;
+  }
+  .valid-icon{font-size:22px}
+  .valid-text{font-size:14px;font-weight:700;color:#10b981}
+  .valid-sub{font-size:11px;color:rgba(16,185,129,0.7);margin-top:2px}
+
+  /* Invoice number */
+  .inv-num{
+    text-align:center;margin-bottom:20px;
+    background:var(--surf);border-radius:12px;padding:14px;
+  }
+  .inv-num-label{font-size:11px;color:var(--mu);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+  .inv-num-val{font-size:28px;font-weight:900;color:#fff;letter-spacing:2px}
+
+  /* Fields */
+  .fields{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+  .field{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:var(--surf);border-radius:10px}
+  .field-label{font-size:12px;color:var(--mu);font-weight:600}
+  .field-value{font-size:14px;font-weight:700;color:#fff;text-align:right;max-width:55%}
+
+  /* Totals */
+  .totals{border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:20px}
+  .total-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bd)}
+  .total-row:last-child{border-bottom:none;background:rgba(59,130,246,0.1)}
+  .total-row:last-child .total-val{color:var(--ac);font-size:17px}
+  .total-row:last-child .total-label{font-weight:800;color:#fff}
+  .total-label{font-size:13px;color:var(--mu);font-weight:600}
+  .total-val{font-size:14px;font-weight:800;color:#fff}
+
+  /* Footer */
+  .footer{text-align:center;padding-top:16px;border-top:1px solid var(--bd)}
+  .footer-brand{font-size:13px;font-weight:700;color:var(--mu)}
+  .footer-note{font-size:11px;color:rgba(255,255,255,0.2);margin-top:4px}
+
+  /* Error state */
+  .error{text-align:center;padding:40px 20px}
+  .error-icon{font-size:48px;margin-bottom:12px}
+  .error-text{font-size:16px;font-weight:700;color:#ef4444}
+  .error-sub{font-size:13px;color:var(--mu);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="card" id="content">
+  <div style="text-align:center;padding:40px 0">
+    <div style="font-size:32px;margin-bottom:12px">⏳</div>
+    <div style="color:var(--mu);font-size:14px">Vérification en cours...</div>
+  </div>
+</div>
+
+<script>
+function getParam(name){
+  var u=new URLSearchParams(window.location.search);
+  return decodeURIComponent(u.get(name)||'');
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+window.addEventListener('load', function(){
+  var n=getParam('n');
+  var date=getParam('d');
+  var client=getParam('c');
+  var societe=getParam('s');
+  var mf=getParam('mf');
+  var ht=getParam('ht');
+  var tva=getParam('tva');
+  var rs=getParam('rs');
+  var net=getParam('net');
+  var shop=getParam('sh');
+
+  if(!n && !net){
+    document.getElementById('content').innerHTML=
+      '<div class="error">'+
+      '<div class="error-icon">❌</div>'+
+      '<div class="error-text">QR Code invalide</div>'+
+      '<div class="error-sub">Cette facture ne peut pas être vérifiée</div>'+
+      '</div>';
+    return;
+  }
+
+  var tvaRow = parseFloat(tva)>0 ?
+    '<div class="total-row"><span class="total-label">TVA</span><span class="total-val">'+esc(tva)+' DT</span></div>' : '';
+  var rsRow = parseFloat(rs)>0 ?
+    '<div class="total-row"><span class="total-label">Retenue à la source</span><span class="total-val">- '+esc(rs)+' DT</span></div>' : '';
+
+  document.getElementById('content').innerHTML=
+    '<div class="header">'+
+      '<div class="logo">🧠</div>'+
+      '<div>'+
+        '<div class="brand-name">Genius</div>'+
+        '<div class="brand-sub">Vérification de facture</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="valid-badge">'+
+      '<div class="valid-icon">✅</div>'+
+      '<div>'+
+        '<div class="valid-text">Facture authentique</div>'+
+        '<div class="valid-sub">Données vérifiées par Genius</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="inv-num">'+
+      '<div class="inv-num-label">Numéro de facture</div>'+
+      '<div class="inv-num-val">FAC-'+esc(n)+'</div>'+
+    '</div>'+
+
+    '<div class="fields">'+
+      (date ? '<div class="field"><span class="field-label">📅 Date</span><span class="field-value">'+esc(date)+'</span></div>' : '')+
+      (client ? '<div class="field"><span class="field-label">👤 Client</span><span class="field-value">'+esc(client)+'</span></div>' : '')+
+      (societe||shop ? '<div class="field"><span class="field-label">🏪 Société</span><span class="field-value">'+esc(societe||shop)+'</span></div>' : '')+
+      (mf ? '<div class="field"><span class="field-label">🏛️ Matricule fiscal</span><span class="field-value">'+esc(mf)+'</span></div>' : '')+
+    '</div>'+
+
+    '<div class="totals">'+
+      (ht ? '<div class="total-row"><span class="total-label">Total HT</span><span class="total-val">'+esc(ht)+' DT</span></div>' : '')+
+      tvaRow+
+      rsRow+
+      '<div class="total-row"><span class="total-label">Net à payer</span><span class="total-val">'+esc(net)+' DT</span></div>'+
+    '</div>'+
+
+    '<div class="footer">'+
+      '<div class="footer-brand">🧠 Genius — Play with Technology 🇹🇳</div>'+
+      '<div class="footer-note">Cette facture a été générée et vérifiée par Genius</div>'+
+    '</div>';
+});
+</script>
+</body>
+</html>
