@@ -282,7 +282,7 @@
   <div id="viewFactures" style="display:none;padding:0 16px 80px">
     <!-- Filters -->
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <input type="date" id="factDateFilter" style="flex:1;min-width:130px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:13px">
+      <input type="date" id="factDateFilter" onchange="renderFactures()" style="flex:1;min-width:130px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:13px">
       <select id="factStatusFilter" onchange="renderFactures()" style="flex:1;min-width:100px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:13px">
         <option value="">Tous statuts</option>
         <option value="paid">✅ Payées</option>
