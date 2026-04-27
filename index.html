@@ -239,17 +239,70 @@
       <div class="stat-label">Valeur DT</div>
     </div>
   </div>
+  <!-- Recette journalière -->
+  <div id="recetteBar" style="display:none;margin:0 16px 12px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px">
+    <div style="font-size:11px;font-weight:800;color:var(--mu);letter-spacing:1px;margin-bottom:10px">📅 RECETTE D'AUJOURD'HUI</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+      <div style="background:var(--surf);border-radius:10px;padding:10px 6px">
+        <div id="recCA" style="font-size:16px;font-weight:900;color:var(--gr)">—</div>
+        <div style="font-size:10px;color:var(--mu);margin-top:2px">CA</div>
+      </div>
+      <div style="background:var(--surf);border-radius:10px;padding:10px 6px">
+        <div id="recCharges" style="font-size:16px;font-weight:900;color:var(--rd)">—</div>
+        <div style="font-size:10px;color:var(--mu);margin-top:2px">Charges</div>
+      </div>
+      <div style="background:var(--surf);border-radius:10px;padding:10px 6px">
+        <div id="recBen" style="font-size:16px;font-weight:900;color:var(--ac)">—</div>
+        <div style="font-size:10px;color:var(--mu);margin-top:2px">Bénéfice</div>
+      </div>
+    </div>
+    <div id="recNbFact" style="font-size:11px;color:var(--mu);text-align:center;margin-top:8px">— factures</div>
+  </div>
 
   <div class="cats" id="catsBar"></div>
 
-  <div class="filter-bar">
-    <span class="filter-label">Filtre :</span>
-    <button class="filter-btn active" onclick="setFilter('all',this)">Tous</button>
-    <button class="filter-btn alert" onclick="setFilter('low',this)">⚠️ Stock faible</button>
-    <button class="filter-btn" onclick="setFilter('ok',this)">✅ OK</button>
+  <!-- Tab Navigation -->
+  <div style="display:flex;gap:0;margin:0 16px 12px;background:var(--surf);border-radius:12px;padding:4px">
+    <button id="tabStock" onclick="switchTab('stock')" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:var(--ac);color:#fff">📦 Stock</button>
+    <button id="tabFact" onclick="switchTab('factures')" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--mu)">🧾 Factures</button>
   </div>
 
-  <div class="products" id="productsList"></div>
+  <!-- Stock View -->
+  <div id="viewStock">
+    <div class="filter-bar">
+      <span class="filter-label">Filtre :</span>
+      <button class="filter-btn active" onclick="setFilter('all',this)">Tous</button>
+      <button class="filter-btn alert" onclick="setFilter('low',this)">⚠️ Stock faible</button>
+      <button class="filter-btn" onclick="setFilter('ok',this)">✅ OK</button>
+    </div>
+    <div class="products" id="productsList"></div>
+  </div>
+
+  <!-- Factures View -->
+  <div id="viewFactures" style="display:none;padding:0 16px 80px">
+    <!-- Filters -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <input type="date" id="factDateFilter" style="flex:1;min-width:130px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:13px">
+      <select id="factStatusFilter" onchange="renderFactures()" style="flex:1;min-width:100px;background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:13px">
+        <option value="">Tous statuts</option>
+        <option value="paid">✅ Payées</option>
+        <option value="pending">⏳ En attente</option>
+        <option value="cancelled">❌ Annulées</option>
+      </select>
+    </div>
+    <div id="factTotal" style="background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--mu)">Total filtré</span>
+      <span id="factTotalVal" style="font-size:16px;font-weight:900;color:var(--gr)">0.000 DT</span>
+    </div>
+    <div id="factList"></div>
+    <!-- Detail Modal -->
+    <div id="factDetail" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;overflow-y:auto;padding:20px">
+      <div style="background:var(--card);border-radius:16px;max-width:500px;margin:0 auto;overflow:hidden">
+        <div id="factDetailContent"></div>
+        <div style="padding:16px"><button onclick="document.getElementById('factDetail').style.display='none'" style="width:100%;padding:12px;background:var(--surf);border:1px solid var(--bd);border-radius:10px;color:var(--tx);font-size:14px;font-weight:700;cursor:pointer">✕ Fermer</button></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -258,10 +311,98 @@ const MOBILE_SECRET='PLAYTECHmobile2024GENIUS';
 const SAVED_CODE_KEY='genius_mobile_code';
 
 let allProducts=[];
+let allInvoices=[];
 let currentCat='all';
 let currentFilter='all';
 let searchVal='';
 let refreshInterval=null;
+let currentTab='stock';
+
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('viewStock').style.display=tab==='stock'?'block':'none';
+  document.getElementById('viewFactures').style.display=tab==='factures'?'block':'none';
+  document.getElementById('tabStock').style.background=tab==='stock'?'var(--ac)':'transparent';
+  document.getElementById('tabStock').style.color=tab==='stock'?'#fff':'var(--mu)';
+  document.getElementById('tabFact').style.background=tab==='factures'?'var(--ac)':'transparent';
+  document.getElementById('tabFact').style.color=tab==='factures'?'#fff':'var(--mu)';
+  if(tab==='factures') renderFactures();
+}
+
+function renderFactures(){
+  const dateF=document.getElementById('factDateFilter')?.value||'';
+  const statF=document.getElementById('factStatusFilter')?.value||'';
+  let list=[...allInvoices];
+  if(dateF) list=list.filter(i=>i.date===dateF);
+  if(statF) list=list.filter(i=>(i.status||'paid')===statF);
+  list.sort((a,b)=>b.num-a.num);
+  const total=list.filter(i=>i.status==='paid').reduce((t,i)=>t+(i.net||0),0);
+  const tv=document.getElementById('factTotalVal');
+  if(tv) tv.textContent=total.toFixed(3)+' DT';
+  const el=document.getElementById('factList');
+  if(!el) return;
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--mu)">Aucune facture</div>';return;}
+  el.innerHTML=list.map(inv=>{
+    const st=inv.status||'paid';
+    const stColor=st==='paid'?'var(--gr)':st==='pending'?'var(--am)':'var(--rd)';
+    const stLabel=st==='paid'?'✅ Payée':st==='pending'?'⏳ En attente':'❌ Annulée';
+    return`<div onclick="showFactDetail(${inv.num})" style="background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <span style="font-family:monospace;font-weight:900;color:var(--ac);font-size:15px">#${String(inv.num).padStart(4,'0')}</span>
+          <span style="font-size:10px;color:var(--mu);margin-left:8px">${inv.date||''}</span>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${stColor}">${stLabel}</span>
+      </div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${inv.clientName||'Comptant'}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--mu)">${(inv.items||[]).length} article(s)${inv.payMode?' · '+inv.payMode:''}</span>
+        <span style="font-size:16px;font-weight:900;color:var(--gr)">${(inv.net||0).toFixed(3)} DT</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showFactDetail(num){
+  const inv=allInvoices.find(i=>i.num===num);
+  if(!inv) return;
+  const st=inv.status||'paid';
+  const stColor=st==='paid'?'var(--gr)':st==='pending'?'var(--am)':'var(--rd)';
+  const stLabel=st==='paid'?'✅ Payée':st==='pending'?'⏳ En attente':'❌ Annulée';
+  document.getElementById('factDetailContent').innerHTML=`
+    <div style="background:linear-gradient(135deg,var(--surf),var(--card));padding:20px;border-bottom:1px solid var(--bd)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-family:monospace;font-size:22px;font-weight:900;color:var(--ac)">#${String(inv.num).padStart(4,'0')}</span>
+        <span style="font-weight:700;color:${stColor}">${stLabel}</span>
+      </div>
+      <div style="font-size:13px;color:var(--mu)">${inv.date||''}</div>
+    </div>
+    <div style="padding:16px;border-bottom:1px solid var(--bd)">
+      <div style="font-size:11px;color:var(--mu);margin-bottom:4px">CLIENT</div>
+      <div style="font-weight:700;font-size:15px">${inv.clientName||'Comptant'}</div>
+      ${inv.payMode?`<div style="font-size:12px;color:var(--mu);margin-top:4px">💳 ${inv.payMode}</div>`:''}
+    </div>
+    <div style="padding:16px;border-bottom:1px solid var(--bd)">
+      <div style="font-size:11px;color:var(--mu);margin-bottom:10px">ARTICLES</div>
+      ${(inv.items||[]).map(it=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd)">
+          <div>
+            <div style="font-size:13px;font-weight:600">${it.name||'—'}</div>
+            <div style="font-size:11px;color:var(--mu)">${it.qty} ${it.unit||'pcs'} × ${(it.price||0).toFixed(3)} DT</div>
+          </div>
+          <div style="font-weight:700;color:var(--ac)">${((it.qty||0)*(it.price||0)).toFixed(3)} DT</div>
+        </div>`).join('')}
+    </div>
+    <div style="padding:16px">
+      ${inv.ht>0?`<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px;color:var(--mu)">Total HT</span><span style="font-weight:600">${(inv.ht||0).toFixed(3)} DT</span></div>`:''}
+      ${inv.tva>0?`<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px;color:var(--mu)">TVA</span><span style="font-weight:600">+ ${(inv.tva||0).toFixed(3)} DT</span></div>`:''}
+      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:2px solid var(--bd)">
+        <span style="font-size:14px;font-weight:800">Net à payer</span>
+        <span style="font-size:20px;font-weight:900;color:var(--gr)">${(inv.net||0).toFixed(3)} DT</span>
+      </div>
+    </div>`;
+  document.getElementById('factDetail').style.display='block';
+}
 
 // Generate mobile code from machine ID (same logic as Genius PC)
 function generateNodeId(code){
@@ -308,11 +449,50 @@ async function login(){
     // Save code
     localStorage.setItem(SAVED_CODE_KEY,code);
     loadApp(data,code);
+    loadInvoices(code);
+    loadRecette(code);
   }catch(e){
     document.getElementById('loading').style.display='none';
     document.getElementById('loginScreen').style.display='flex';
     showErr(true);
   }
+}
+
+async function loadInvoices(code){
+  const nodeId=code.replace(/-/g,'_').toUpperCase();
+  try{
+    const res=await fetch(`${FIREBASE_URL}/invoices/${nodeId}.json`);
+    if(res.ok){
+      const data=await res.json();
+      if(data&&data.list){
+        allInvoices=data.list;
+        if(currentTab==='factures') renderFactures();
+      }
+    }
+  }catch(e){}
+}
+
+async function loadRecette(code){
+  const nodeId=code.replace(/-/g,'_').toUpperCase();
+  try{
+    const res=await fetch(`${FIREBASE_URL}/recette/${nodeId}.json`);
+    if(res.ok){
+      const data=await res.json();
+      if(data&&data.date){
+        const today=new Date().toISOString().slice(0,10);
+        if(data.date===today){
+          document.getElementById('recetteBar').style.display='block';
+          document.getElementById('recCA').textContent=(data.caJour||0).toFixed(3)+' DT';
+          document.getElementById('recCharges').textContent=(data.chargesJour||0).toFixed(3)+' DT';
+          const ben=data.benJour||0;
+          const benEl=document.getElementById('recBen');
+          benEl.textContent=ben.toFixed(3)+' DT';
+          benEl.style.color=ben>=0?'var(--gr)':'var(--rd)';
+          document.getElementById('recNbFact').textContent=(data.nbFactures||0)+' facture(s)';
+        }
+      }
+    }
+  }catch(e){}
 }
 
 function loadApp(data,code){
@@ -333,7 +513,11 @@ function loadApp(data,code){
   
   // Auto-refresh every 30 seconds
   if(refreshInterval) clearInterval(refreshInterval);
-  refreshInterval=setInterval(()=>refreshData(code),30000);
+  refreshInterval=setInterval(()=>{
+    refreshData(code);
+    loadInvoices(code);
+    loadRecette(code);
+  },30000);
 }
 
 async function refreshData(code){
